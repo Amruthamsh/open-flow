@@ -6,6 +6,8 @@ This is a mobile and computer use agent that stays on your screen and supports y
 
 Think Antigravity or Claude code for everyone, not just developers.
 
+Compared to OpenClaw, OpenFlow's state accumulates across WhatsApp, a government portal, a banking app, and a camera roll simultaneously. We use gemma embeddings and then semantically search for the right context. That compound context is what makes it feel like a helpful senior colleague, not just an agent.
+
 ### Gemma Model Fallback
 
 Today's assistants fail because they're cloud-first.
