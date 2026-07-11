@@ -23,12 +23,20 @@ Cloud → Edge → Local.
 ### Who is this for?
 
 **Students:** Understanding online lectures, filling scholarship applications, explaining PDFs, navigating learning apps.
+
 **Small business owners:** Reading invoices, replying to customers, managing payments, creating GST summaries.
+
 **Field workers:** Updating CRM apps, filling inspection forms, translating conversations with customers.
+
 **Citizens:** Navigating government portals, understanding official documents, completing applications.
+
 **Factory & Manufacturing Operators:** Following SOPs, reporting equipment issues, documenting inspections, accessing maintenance manuals.
+
 **Farmers:** Understanding crop issues through the camera, accessing government schemes, filling subsidy applications, maintaining farm records.
+
 **Senior Citizens:** Understanding digital services, completing online forms, reading documents aloud, navigating unfamiliar apps.
+
+Example Flow: A Jal Jeevan Mission plumber who's on a site with no signal, photographs a broken pipe fitting, gets an offline diagnosis, auto-fills the NREGA attendance form, and queues the incident report to sync when connectivity returns.
 
 High Level Design:
 
