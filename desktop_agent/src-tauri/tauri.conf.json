@@ -1,0 +1,44 @@
+{
+  "productName": "OpenFlow",
+  "version": "0.1.0",
+  "identifier": "com.openflow.agent",
+  "build": {
+    "frontendDist": "../dist",
+    "devUrl": "http://localhost:5173",
+    "beforeDevCommand": "npm run dev",
+    "beforeBuildCommand": "npm run build"
+  },
+  "bundle": {
+    "resources": ["../scripts/*"],
+    "macOS": {
+      "entitlements": null,
+      "signingIdentity": null
+    }
+  },
+  "app": {
+    "macOSPrivateApi": true,
+    "windows": [
+      {
+        "label": "pet",
+        "title": "OpenFlow",
+        "width": 56,
+        "height": 56,
+        "resizable": false,
+        "fullscreen": false,
+        "decorations": false,
+        "transparent": true,
+        "alwaysOnTop": true,
+        "skipTaskbar": true,
+        "shadow": false
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "plugins": {
+    "sql": {
+      "preload": ["sqlite:nova.db"]
+    }
+  }
+}
