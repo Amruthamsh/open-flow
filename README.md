@@ -42,5 +42,4 @@ A Jal Jeevan Mission plumber who's on a site with no signal, photographs a broke
 
 ### High Level Design:
 
-<img width="1986" height="740" alt="image" src="https://github.com/user-attachments/assets/77fd6de8-1ef4-4689-a5bb-703dce126bca" />
-
+<img width="1978" height="746" alt="image" src="https://github.com/user-attachments/assets/98f721a7-c86a-41c3-8e83-c3fecfb8624e" />
