@@ -4,7 +4,7 @@ Over 90% of Indians access the internet through smartphones. We're bringing desk
 
 Think Antigravity or Claude code for everyone, not just developers.
 
-This is a mobile and computer use agent that stays on your screen and supports you.
+This is a mobile and computer use agent that stays on your screen and supports you. Existing AI assistants answer questions within an app. We observe context across apps, across the camera, and across devices, then take actions to help users complete end-to-end tasks—even when connectivity is unreliable. When there is a security compliance, we identify beforehand and mask PII data or fallback to Gemma Models.
 
 ### Gemma Model Fallback
 
