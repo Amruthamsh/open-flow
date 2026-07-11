@@ -30,4 +30,7 @@ Cloud → Edge → Local.
 **Farmers:** Understanding crop issues through the camera, accessing government schemes, filling subsidy applications, maintaining farm records.
 **Senior Citizens:** Understanding digital services, completing online forms, reading documents aloud, navigating unfamiliar apps.
 
-<img width="1996" height="816" alt="image" src="https://github.com/user-attachments/assets/5f86501d-4812-488b-91dc-05fd4fa4461f" />
+High Level Design:
+
+<img width="1986" height="740" alt="image" src="https://github.com/user-attachments/assets/77fd6de8-1ef4-4689-a5bb-703dce126bca" />
+
