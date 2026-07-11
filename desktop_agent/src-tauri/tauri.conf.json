@@ -1,7 +1,7 @@
 {
-  "productName": "Nova",
+  "productName": "OpenFlow",
   "version": "0.1.0",
-  "identifier": "com.nova.app",
+  "identifier": "com.openflow.agent",
   "build": {
     "frontendDist": "../dist",
     "devUrl": "http://localhost:5173",
@@ -13,9 +13,9 @@
     "windows": [
       {
         "label": "pet",
-        "title": "Nova",
-        "width": 120,
-        "height": 120,
+        "title": "OpenFlow",
+        "width": 56,
+        "height": 56,
         "resizable": false,
         "fullscreen": false,
         "decorations": false,

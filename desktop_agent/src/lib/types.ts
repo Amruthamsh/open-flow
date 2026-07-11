@@ -1,12 +1,32 @@
+export type ActionType =
+  | "move_file"
+  | "create_directory"
+  | "open_application"
+  | "open_url"
+  | "open_in_vscode"
+  | "open_terminal"
+  | "read_screen"
+  | "type_text"
+  | "click_element"
+  | "scroll"
+  | "explain_document"
+  | "fill_form"
+  | "summarize_content"
+  | "compose_message"
+  | "translate_text"
+  | "read_aloud"
+  | "take_screenshot"
+  | "search_web"
+  | "wait"
+  | "notify_user"
+  | "write_file"
+  | "run_script"
+  | "read_file"
+  | "open_file";
+
 export interface PlanStep {
-  action:
-    | "move_file"
-    | "create_directory"
-    | "open_application"
-    | "open_url"
-    | "open_in_vscode"
-    | "open_terminal";
-  params: Record<string, string>;
+  action: ActionType;
+  params: Record<string, unknown>;
   destructive: boolean;
   description: string;
 }
@@ -50,6 +70,13 @@ export type AppPhase =
   | "executing"
   | "done"
   | "error";
+
+export type ConnectivityLevel = "cloud" | "edge" | "local";
+
+export interface ConnectivityStatus {
+  level: ConnectivityLevel;
+  latency_ms: number | null;
+}
 
 export interface MoveResult {
   source: string;

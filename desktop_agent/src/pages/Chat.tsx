@@ -1,8 +1,8 @@
-import { useState } from "react";
-import { invoke } from "@tauri-apps/api/core";
+import { useState, useEffect, useRef } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { generatePlan, executePlan } from "../lib/tauri-api";
-import type { Plan, ExecutionResult, AppPhase, StepResult } from "../lib/types";
+import { generatePlan, executePlan, checkConnectivity } from "../lib/tauri-api";
+import { createVoiceRecognition } from "../lib/voice";
+import type { Plan, ExecutionResult, AppPhase, StepResult, ConnectivityLevel } from "../lib/types";
 import {
   Send,
   X,
@@ -10,13 +10,34 @@ import {
   CheckCircle,
   XCircle,
   AlertTriangle,
-  ShieldCheck,
+  Mic,
+  MicOff,
   FileOutput,
   FolderOpen,
   Globe,
   Terminal,
   Code,
   AppWindow,
+  RotateCcw,
+  Monitor,
+  Type,
+  MousePointer,
+  ArrowUpDown,
+  FileText,
+  PenTool,
+  MessageSquare,
+  Languages,
+  Volume2,
+  Camera,
+  Search,
+  Clock,
+  Bell,
+  Wifi,
+  WifiOff,
+  Cloud,
+  FilePlus,
+  Play,
+  FileSearch,
 } from "lucide-react";
 
 const actionIcons: Record<string, React.ReactNode> = {
@@ -26,6 +47,35 @@ const actionIcons: Record<string, React.ReactNode> = {
   open_url: <Globe className="w-3.5 h-3.5" />,
   open_in_vscode: <Code className="w-3.5 h-3.5" />,
   open_terminal: <Terminal className="w-3.5 h-3.5" />,
+  read_screen: <Monitor className="w-3.5 h-3.5" />,
+  type_text: <Type className="w-3.5 h-3.5" />,
+  click_element: <MousePointer className="w-3.5 h-3.5" />,
+  scroll: <ArrowUpDown className="w-3.5 h-3.5" />,
+  explain_document: <FileText className="w-3.5 h-3.5" />,
+  fill_form: <PenTool className="w-3.5 h-3.5" />,
+  summarize_content: <FileText className="w-3.5 h-3.5" />,
+  compose_message: <MessageSquare className="w-3.5 h-3.5" />,
+  translate_text: <Languages className="w-3.5 h-3.5" />,
+  read_aloud: <Volume2 className="w-3.5 h-3.5" />,
+  take_screenshot: <Camera className="w-3.5 h-3.5" />,
+  search_web: <Search className="w-3.5 h-3.5" />,
+  wait: <Clock className="w-3.5 h-3.5" />,
+  notify_user: <Bell className="w-3.5 h-3.5" />,
+  write_file: <FilePlus className="w-3.5 h-3.5" />,
+  run_script: <Play className="w-3.5 h-3.5" />,
+  read_file: <FileSearch className="w-3.5 h-3.5" />,
+};
+
+const connectivityColors: Record<ConnectivityLevel, string> = {
+  cloud: "text-emerald-400",
+  edge: "text-amber-400",
+  local: "text-red-400",
+};
+
+const connectivityLabels: Record<ConnectivityLevel, string> = {
+  cloud: "Cloud",
+  edge: "Edge",
+  local: "Offline",
 };
 
 export function Chat() {
@@ -37,16 +87,60 @@ export function Chat() {
   const [error, setError] = useState<string | null>(null);
   const [executingIndex, setExecutingIndex] = useState(-1);
   const [stepResults, setStepResults] = useState<StepResult[]>([]);
+  const [isListening, setIsListening] = useState(false);
+  const [interimText, setInterimText] = useState("");
+  const [connectivity, setConnectivity] = useState<ConnectivityLevel>("cloud");
+  const voiceRef = useRef<ReturnType<typeof createVoiceRecognition>>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Check connectivity on mount
+  useEffect(() => {
+    checkConnectivity()
+      .then((status) => setConnectivity(status.level as ConnectivityLevel))
+      .catch(() => setConnectivity("local"));
+  }, []);
+
+  // Listen for voice commands from the Pet orb
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const transcript = (e as CustomEvent).detail;
+      if (transcript && phase === "idle") {
+        setInput(transcript);
+        setTimeout(() => submitCommand(transcript), 100);
+      }
+    };
+    window.addEventListener("nova-voice-command", handler);
+    return () => window.removeEventListener("nova-voice-command", handler);
+  }, [phase]);
+
+  // Initialize voice recognition
+  useEffect(() => {
+    voiceRef.current = createVoiceRecognition(
+      (transcript, isFinal) => {
+        if (isFinal) {
+          setInput(transcript);
+          setInterimText("");
+          setTimeout(() => submitCommand(transcript), 100);
+        } else {
+          setInterimText(transcript);
+        }
+      },
+      (listening) => {
+        setIsListening(listening);
+        if (!listening) setInterimText("");
+      }
+    );
+  }, []);
 
   const handleClose = async () => {
     const win = getCurrentWindow();
     await win.hide();
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!input.trim()) return;
-    setCommand(input.trim());
+  const submitCommand = async (text: string) => {
+    if (!text.trim()) return;
+    const cmd = text.trim();
+    setCommand(cmd);
     setInput("");
     setPhase("planning");
     setError(null);
@@ -54,13 +148,18 @@ export function Chat() {
     setResult(null);
 
     try {
-      const newPlan = await generatePlan(input.trim());
+      const newPlan = await generatePlan(cmd);
       setPlan(newPlan);
       setPhase("confirming");
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
       setPhase("error");
     }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    submitCommand(input);
   };
 
   const handleConfirm = async () => {
@@ -110,80 +209,124 @@ export function Chat() {
     setStepResults([]);
   };
 
+  const toggleVoice = () => {
+    if (!voiceRef.current) return;
+    if (isListening) {
+      voiceRef.current.stop();
+    } else {
+      voiceRef.current.start();
+    }
+  };
+
   return (
-    <div className="w-full h-full flex flex-col bg-[hsl(0,0%,8%)]/95 backdrop-blur-xl rounded-2xl border border-white/10 overflow-hidden">
+    <div className="w-full h-full flex flex-col bg-[#0a0a0f]/95 backdrop-blur-2xl rounded-2xl border border-white/[0.06] overflow-hidden shadow-2xl">
       {/* Title bar */}
       <div
-        className="flex items-center justify-between px-4 py-2 border-b border-white/5"
+        className="flex items-center justify-between px-4 py-2.5 border-b border-white/[0.04]"
         data-tauri-drag-region
       >
-        <span className="text-xs font-medium text-white/70" data-tauri-drag-region>
-          Nova
-        </span>
-        <button
-          onClick={handleClose}
-          className="w-5 h-5 flex items-center justify-center rounded-full hover:bg-white/10 transition-colors"
-        >
-          <X className="w-3 h-3 text-white/50" />
-        </button>
+        <div className="flex items-center gap-2" data-tauri-drag-region>
+          <div className="w-2 h-2 rounded-full bg-purple-500" />
+          <span className="text-[11px] font-medium text-white/50 tracking-wide uppercase" data-tauri-drag-region>
+            OpenFlow
+          </span>
+        </div>
+        <div className="flex items-center gap-2">
+          {/* Connectivity indicator */}
+          <div className={`flex items-center gap-1 ${connectivityColors[connectivity]}`}>
+            {connectivity === "cloud" ? (
+              <Cloud className="w-3 h-3" />
+            ) : connectivity === "edge" ? (
+              <Wifi className="w-3 h-3" />
+            ) : (
+              <WifiOff className="w-3 h-3" />
+            )}
+            <span className="text-[9px] uppercase tracking-wider">
+              {connectivityLabels[connectivity]}
+            </span>
+          </div>
+          <button
+            onClick={handleClose}
+            className="w-5 h-5 flex items-center justify-center rounded-full hover:bg-white/10 transition-colors"
+          >
+            <X className="w-3 h-3 text-white/40" />
+          </button>
+        </div>
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-auto p-3">
+      <div className="flex-1 overflow-auto p-4">
         {phase === "idle" && (
-          <div className="flex items-center justify-center h-full">
-            <p className="text-xs text-white/40 text-center">
-              What would you like me to do?
-            </p>
+          <div className="flex flex-col items-center justify-center h-full gap-4">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500/10 to-blue-500/10 border border-white/[0.06] flex items-center justify-center">
+              <div className="w-4 h-4 rounded-sm rotate-45 bg-gradient-to-br from-purple-400/80 to-blue-400/60" />
+            </div>
+            <div className="text-center">
+              <p className="text-[13px] text-white/50">
+                {isListening ? (
+                  <span className="text-blue-400">
+                    {interimText || "Listening..."}
+                  </span>
+                ) : (
+                  "How can I help?"
+                )}
+              </p>
+              <p className="text-[10px] text-white/25 mt-1">
+                Fill forms · Read screens · Navigate apps · Explain docs
+              </p>
+            </div>
           </div>
         )}
 
         {phase === "planning" && (
-          <div className="flex flex-col items-center justify-center h-full gap-2">
-            <Loader2 className="w-5 h-5 animate-spin text-purple-400" />
-            <p className="text-xs text-white/50">Thinking...</p>
+          <div className="flex flex-col items-center justify-center h-full gap-3">
+            <div className="relative">
+              <Loader2 className="w-5 h-5 animate-spin text-purple-400" />
+            </div>
+            <p className="text-[12px] text-white/40">Planning...</p>
+            <p className="text-[11px] text-white/25 max-w-[240px] text-center">
+              "{command}"
+            </p>
           </div>
         )}
 
         {phase === "confirming" && plan && (
           <div className="flex flex-col gap-3">
-            <div className="bg-white/5 rounded-lg p-3">
-              <p className="text-xs font-medium text-white/90 mb-2">{plan.summary}</p>
-              <div className="flex flex-col gap-1.5">
-                {plan.steps.map((step, i) => (
-                  <div
-                    key={i}
-                    className={`flex items-center gap-2 px-2 py-1.5 rounded text-[11px] ${
-                      step.destructive
-                        ? "bg-red-500/10 text-red-300"
-                        : "bg-white/5 text-white/70"
-                    }`}
-                  >
-                    <span className="opacity-60">
-                      {actionIcons[step.action] || <FileOutput className="w-3.5 h-3.5" />}
-                    </span>
-                    <span className="flex-1">{step.description}</span>
-                    {step.destructive && <AlertTriangle className="w-3 h-3 text-red-400" />}
-                  </div>
-                ))}
-              </div>
+            <p className="text-[12px] font-medium text-white/80">{plan.summary}</p>
+            <div className="flex flex-col gap-1">
+              {plan.steps.map((step, i) => (
+                <div
+                  key={i}
+                  className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-[11px] ${
+                    step.destructive
+                      ? "bg-red-500/[0.06] border border-red-500/10 text-red-300/80"
+                      : "bg-white/[0.02] border border-white/[0.04] text-white/60"
+                  }`}
+                >
+                  <span className="opacity-50">
+                    {actionIcons[step.action] || <FileOutput className="w-3.5 h-3.5" />}
+                  </span>
+                  <span className="flex-1">{step.description}</span>
+                  {step.destructive && <AlertTriangle className="w-3 h-3 text-red-400/60" />}
+                </div>
+              ))}
             </div>
 
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-1.5 text-[11px] text-white/50">
-                <ShieldCheck className="w-3.5 h-3.5 text-purple-400" />
-                <span>{plan.steps.some((s) => s.destructive) ? "Will modify files" : "Safe to run"}</span>
-              </div>
+            <div className="flex items-center justify-between mt-1">
+              <span className="text-[10px] text-white/30">
+                {plan.steps.length} step{plan.steps.length > 1 ? "s" : ""}
+                {plan.steps.some(s => s.destructive) && " · will modify files"}
+              </span>
               <div className="flex gap-1.5">
                 <button
                   onClick={() => { setPhase("idle"); setPlan(null); }}
-                  className="px-2.5 py-1 rounded-md text-[11px] bg-white/5 text-white/60 hover:bg-white/10"
+                  className="px-3 py-1.5 rounded-lg text-[11px] bg-white/[0.04] text-white/50 hover:bg-white/[0.08] transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleConfirm}
-                  className="px-3 py-1 rounded-md text-[11px] font-medium bg-purple-600 text-white hover:bg-purple-500"
+                  className="px-3.5 py-1.5 rounded-lg text-[11px] font-medium bg-purple-600/90 text-white hover:bg-purple-500/90 transition-colors"
                 >
                   Run
                 </button>
@@ -194,104 +337,119 @@ export function Chat() {
 
         {phase === "executing" && plan && (
           <div className="flex flex-col gap-2">
-            <div className="flex items-center gap-2 text-xs text-white/70">
+            <div className="flex items-center gap-2 mb-1">
               <Loader2 className="w-3.5 h-3.5 animate-spin text-purple-400" />
-              <span>Running {executingIndex + 1}/{plan.steps.length}...</span>
+              <span className="text-[11px] text-white/50">
+                Step {executingIndex + 1} of {plan.steps.length}
+              </span>
             </div>
-            <div className="flex flex-col gap-1">
-              {plan.steps.map((step, i) => {
-                const r = stepResults[i];
-                return (
-                  <div
-                    key={i}
-                    className={`flex items-center gap-2 px-2 py-1.5 rounded text-[11px] ${
-                      r
-                        ? r.success
-                          ? "bg-green-500/10 text-green-300"
-                          : "bg-red-500/10 text-red-300"
-                        : i === executingIndex
-                          ? "bg-purple-500/10 text-purple-300"
-                          : "bg-white/5 text-white/40"
-                    }`}
-                  >
-                    {r ? (
-                      r.success ? <CheckCircle className="w-3.5 h-3.5" /> : <XCircle className="w-3.5 h-3.5" />
-                    ) : i === executingIndex ? (
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    ) : (
-                      <div className="w-3.5 h-3.5 rounded-full border border-white/20" />
-                    )}
-                    <span className="flex-1 truncate">{step.description}</span>
-                  </div>
-                );
-              })}
-            </div>
+            {plan.steps.map((step, i) => {
+              const r = stepResults[i];
+              return (
+                <div
+                  key={i}
+                  className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-[11px] transition-all duration-200 ${
+                    r
+                      ? r.success
+                        ? "bg-emerald-500/[0.06] border border-emerald-500/10 text-emerald-300/80"
+                        : "bg-red-500/[0.06] border border-red-500/10 text-red-300/80"
+                      : i === executingIndex
+                        ? "bg-purple-500/[0.06] border border-purple-500/15 text-purple-300/80"
+                        : "bg-white/[0.01] border border-white/[0.03] text-white/30"
+                  }`}
+                >
+                  {r ? (
+                    r.success ? <CheckCircle className="w-3.5 h-3.5 text-emerald-400" /> : <XCircle className="w-3.5 h-3.5 text-red-400" />
+                  ) : i === executingIndex ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <div className="w-3.5 h-3.5 rounded-full border border-white/10" />
+                  )}
+                  <span className="flex-1 truncate">{step.description}</span>
+                </div>
+              );
+            })}
           </div>
         )}
 
         {phase === "done" && result && (
           <div className="flex flex-col gap-3">
             <div
-              className={`flex items-center gap-2 p-3 rounded-lg ${
+              className={`flex items-center gap-3 p-3 rounded-xl ${
                 result.steps_failed === 0
-                  ? "bg-green-500/10 border border-green-500/20"
-                  : "bg-yellow-500/10 border border-yellow-500/20"
+                  ? "bg-emerald-500/[0.06] border border-emerald-500/10"
+                  : "bg-amber-500/[0.06] border border-amber-500/10"
               }`}
             >
               {result.steps_failed === 0 ? (
-                <CheckCircle className="w-4 h-4 text-green-400" />
+                <CheckCircle className="w-4 h-4 text-emerald-400" />
               ) : (
-                <AlertTriangle className="w-4 h-4 text-yellow-400" />
+                <AlertTriangle className="w-4 h-4 text-amber-400" />
               )}
               <div>
-                <p className="text-xs font-medium text-white/90">
-                  {result.steps_failed === 0 ? "Done!" : "Completed with errors"}
+                <p className="text-[12px] font-medium text-white/80">
+                  {result.steps_failed === 0 ? "Done" : "Completed with errors"}
                 </p>
-                <p className="text-[11px] text-white/50">
+                <p className="text-[10px] text-white/30 mt-0.5">
                   {result.steps_succeeded}/{result.results.length} steps · {result.total_duration_ms}ms
                 </p>
               </div>
             </div>
             <button
               onClick={handleReset}
-              className="self-center px-3 py-1.5 rounded-md text-[11px] bg-purple-600 text-white hover:bg-purple-500"
+              className="self-center flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] text-white/50 bg-white/[0.04] hover:bg-white/[0.08] transition-colors"
             >
-              New Command
+              <RotateCcw className="w-3 h-3" />
+              New command
             </button>
           </div>
         )}
 
         {phase === "error" && (
           <div className="flex flex-col items-center justify-center h-full gap-3">
-            <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3 text-center">
-              <p className="text-[11px] text-red-300">{error}</p>
+            <div className="bg-red-500/[0.06] border border-red-500/10 rounded-xl p-3 max-w-full">
+              <p className="text-[11px] text-red-300/80 break-words">{error}</p>
             </div>
             <button
               onClick={handleReset}
-              className="px-3 py-1.5 rounded-md text-[11px] bg-white/5 text-white/60 hover:bg-white/10"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] text-white/50 bg-white/[0.04] hover:bg-white/[0.08] transition-colors"
             >
-              Try Again
+              <RotateCcw className="w-3 h-3" />
+              Try again
             </button>
           </div>
         )}
       </div>
 
-      {/* Input bar - always visible */}
+      {/* Input bar */}
       {(phase === "idle" || phase === "done") && (
         <form onSubmit={handleSubmit} className="p-3 pt-0">
-          <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-xl px-3 py-2 focus-within:border-purple-500/50">
+          <div className="flex items-center gap-2 bg-white/[0.03] border border-white/[0.06] rounded-xl px-3 py-2 focus-within:border-purple-500/30 transition-colors">
             <input
+              ref={inputRef}
               type="text"
-              value={input}
+              value={isListening ? interimText : input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Ask Nova anything..."
-              className="flex-1 bg-transparent outline-none text-xs text-white placeholder:text-white/30"
+              placeholder={isListening ? "Listening..." : "What should I do?"}
+              className="flex-1 bg-transparent outline-none text-[12px] text-white/90 placeholder:text-white/20"
               autoFocus
+              readOnly={isListening}
             />
             <button
+              type="button"
+              onClick={toggleVoice}
+              className={`p-1.5 rounded-lg transition-all duration-200 ${
+                isListening
+                  ? "bg-blue-500/20 text-blue-400"
+                  : "text-white/25 hover:text-white/50 hover:bg-white/[0.04]"
+              }`}
+            >
+              {isListening ? <Mic className="w-3.5 h-3.5" /> : <MicOff className="w-3.5 h-3.5" />}
+            </button>
+            <button
               type="submit"
-              disabled={!input.trim()}
-              className="p-1 rounded-md bg-purple-600 text-white disabled:opacity-30 hover:bg-purple-500 transition-colors"
+              disabled={!input.trim() || isListening}
+              className="p-1.5 rounded-lg bg-purple-600/80 text-white disabled:opacity-20 hover:bg-purple-500/80 transition-all"
             >
               <Send className="w-3 h-3" />
             </button>
