@@ -36,9 +36,11 @@ Cloud → Edge → Local.
 
 **Senior Citizens:** Understanding digital services, completing online forms, reading documents aloud, navigating unfamiliar apps.
 
-Example Flow: A Jal Jeevan Mission plumber who's on a site with no signal, photographs a broken pipe fitting, gets an offline diagnosis, auto-fills the NREGA attendance form, and queues the incident report to sync when connectivity returns.
+#### Example Flow: 
 
-High Level Design:
+A Jal Jeevan Mission plumber who's on a site with no signal, photographs a broken pipe fitting, gets an offline diagnosis, auto-fills the NREGA attendance form, and queues the incident report to sync when connectivity returns.
+
+### High Level Design:
 
 <img width="1986" height="740" alt="image" src="https://github.com/user-attachments/assets/77fd6de8-1ef4-4689-a5bb-703dce126bca" />
 
