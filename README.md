@@ -1,10 +1,10 @@
 ## OpenFlow
 
-Over 90% of Indians access the internet through smartphones. We're bringing desktop-class AI productivity to the smartphone. 
+Over 90% of Indians access the internet through smartphones. We're bringing desktop-class AI productivity to the smartphone. Think Antigravity or Claude code for everyone, not just developers.
 
-Think Antigravity or Claude for everyone, not just developers.
+This is a mobile and computer use agent that stays on your screen and supports you. Existing AI assistants answer questions within an app. We observe context across apps, across the camera, and across devices, then take actions to help users complete end-to-end tasks—even when connectivity is unreliable. When there is a security compliance, we identify beforehand and mask PII data or fallback to Gemma Models.
 
-This is a mobile and computer use agent that stays on your screen and supports you.
+Compared to OpenClaw, OpenFlow's state accumulates across WhatsApp, a government portal, a banking app, and a camera roll simultaneously. We use gemma embeddings and then semantically search for the right context. That compound context is what makes it feel like a helpful senior colleague and a friend, not just an agent.
 
 ### Gemma Model Fallback
 
@@ -36,4 +36,10 @@ Cloud → Edge → Local.
 
 **Senior Citizens:** Understanding digital services, completing online forms, reading documents aloud, navigating unfamiliar apps.
 
-<img width="1996" height="816" alt="image" src="https://github.com/user-attachments/assets/5f86501d-4812-488b-91dc-05fd4fa4461f" />
+#### Example Flow: 
+
+A Jal Jeevan Mission plumber who's on a site with no signal, photographs a broken pipe fitting, gets an offline diagnosis, auto-fills the NREGA attendance form, and queues the incident report to sync when connectivity returns.
+
+### High Level Design:
+
+<img width="1978" height="746" alt="image" src="https://github.com/user-attachments/assets/98f721a7-c86a-41c3-8e83-c3fecfb8624e" />
