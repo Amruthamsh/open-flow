@@ -2,10 +2,9 @@
 
 Over 90% of Indians access the internet through smartphones. We're bringing desktop-class AI productivity to the smartphone. 
 
-Think Antigravity for everyone, and not just developers.
+Think Antigravity or Claude for everyone, not just developers.
 
 This is a mobile and computer use agent that stays on your screen and supports you.
-
 
 Today's assistants fail because they're cloud-first.
 If you're on 
