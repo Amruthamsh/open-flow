@@ -2,6 +2,7 @@ mod commands;
 mod db;
 mod planner;
 
+use tauri::{Emitter, Manager};
 use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut, ShortcutState};
 use tauri_plugin_sql::Builder as SqlBuilder;
 
@@ -19,11 +20,19 @@ pub fn run() {
         .plugin(tauri_plugin_shell::init())
         .plugin(
             tauri_plugin_global_shortcut::Builder::new()
-                .with_handler(move |app, _event, shortcut_event| {
+                .with_handler(move |app, shortcut, shortcut_event| {
                     if shortcut_event.state == ShortcutState::Pressed {
                         let handle = app.clone();
+                        let shortcut_str = shortcut.to_string();
                         tauri::async_runtime::spawn(async move {
-                            let _ = commands::window::open_chat_window(handle).await;
+                            if shortcut_str.contains("V") || shortcut_str.contains("v") {
+                                // Voice shortcut: emit event to frontend
+                                if let Some(window) = handle.get_webview_window("pet") {
+                                    let _ = window.emit("trigger-voice", ());
+                                }
+                            } else {
+                                let _ = commands::window::open_chat_window(handle).await;
+                            }
                         });
                     }
                 })
@@ -58,13 +67,21 @@ pub fn run() {
             commands::automation::run_script,
             commands::automation::read_file,
             commands::automation::open_file,
+            // Voice
+            commands::voice::start_voice_recognition,
             // Planner
             planner::generate_plan,
             planner::check_connectivity,
         ])
         .setup(|app| {
-            let shortcut: Shortcut = "CommandOrControl+Shift+Space".parse().unwrap();
-            app.global_shortcut().register(shortcut)?;
+            // Cmd+Shift+Space: open chat window
+            let chat_shortcut: Shortcut = "CommandOrControl+Shift+Space".parse().unwrap();
+            app.global_shortcut().register(chat_shortcut)?;
+
+            // Cmd+Shift+V: trigger voice input directly
+            let voice_shortcut: Shortcut = "CommandOrControl+Shift+V".parse().unwrap();
+            app.global_shortcut().register(voice_shortcut)?;
+
             Ok(())
         })
         .run(tauri::generate_context!())

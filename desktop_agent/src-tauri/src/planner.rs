@@ -146,7 +146,7 @@ Rules:
     let client = reqwest::Client::new();
     let response = client
         .post(format!(
-            "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={}",
+            "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key={}",
             api_key
         ))
         .json(&request_body)

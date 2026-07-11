@@ -8,6 +8,13 @@
     "beforeDevCommand": "npm run dev",
     "beforeBuildCommand": "npm run build"
   },
+  "bundle": {
+    "resources": ["../scripts/*"],
+    "macOS": {
+      "entitlements": null,
+      "signingIdentity": null
+    }
+  },
   "app": {
     "macOSPrivateApi": true,
     "windows": [

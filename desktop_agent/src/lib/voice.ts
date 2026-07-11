@@ -1,3 +1,5 @@
+import { invoke } from "@tauri-apps/api/core";
+
 type VoiceCallback = (transcript: string, isFinal: boolean) => void;
 type StateCallback = (listening: boolean) => void;
 
@@ -7,113 +9,54 @@ interface VoiceRecognition {
   isListening: () => boolean;
 }
 
-declare global {
-  interface Window {
-    SpeechRecognition: new () => SpeechRecognition;
-    webkitSpeechRecognition: new () => SpeechRecognition;
-  }
-  interface SpeechRecognition extends EventTarget {
-    continuous: boolean;
-    interimResults: boolean;
-    lang: string;
-    start(): void;
-    stop(): void;
-    abort(): void;
-    onresult: ((event: SpeechRecognitionEvent) => void) | null;
-    onend: (() => void) | null;
-    onerror: ((event: SpeechRecognitionErrorEvent) => void) | null;
-    onstart: (() => void) | null;
-  }
-  interface SpeechRecognitionEvent {
-    resultIndex: number;
-    results: SpeechRecognitionResultList;
-  }
-  interface SpeechRecognitionResultList {
-    length: number;
-    item(index: number): SpeechRecognitionResult;
-    [index: number]: SpeechRecognitionResult;
-  }
-  interface SpeechRecognitionResult {
-    isFinal: boolean;
-    length: number;
-    item(index: number): SpeechRecognitionAlternative;
-    [index: number]: SpeechRecognitionAlternative;
-  }
-  interface SpeechRecognitionAlternative {
-    transcript: string;
-    confidence: number;
-  }
-  interface SpeechRecognitionErrorEvent {
-    error: string;
-  }
+interface NativeVoiceResult {
+  transcript: string | null;
+  error: string | null;
+  confidence: number | null;
 }
 
 export function createVoiceRecognition(
   onResult: VoiceCallback,
   onStateChange: StateCallback
-): VoiceRecognition | null {
-  const SpeechRecognition =
-    window.SpeechRecognition || window.webkitSpeechRecognition;
-
-  if (!SpeechRecognition) return null;
-
+): VoiceRecognition {
   let listening = false;
-  let recognition: SpeechRecognition | null = null;
+  let aborted = false;
 
-  function start() {
+  async function startNative() {
     if (listening) return;
-    recognition = new SpeechRecognition();
-    recognition.continuous = false;
-    recognition.interimResults = true;
-    recognition.lang = "en-IN";
+    listening = true;
+    aborted = false;
+    onStateChange(true);
 
-    recognition.onstart = () => {
-      listening = true;
-      onStateChange(true);
-    };
+    try {
+      const result: NativeVoiceResult = await invoke("start_voice_recognition");
 
-    recognition.onresult = (event: SpeechRecognitionEvent) => {
-      let finalTranscript = "";
-      let interimTranscript = "";
+      if (aborted) return;
 
-      for (let i = event.resultIndex; i < event.results.length; i++) {
-        const result = event.results[i];
-        if (result.isFinal) {
-          finalTranscript += result[0].transcript;
-        } else {
-          interimTranscript += result[0].transcript;
-        }
+      if (result.transcript) {
+        onResult(result.transcript, true);
+      } else if (result.error) {
+        console.warn("Voice recognition error:", result.error);
       }
-
-      if (finalTranscript) {
-        onResult(finalTranscript, true);
-      } else if (interimTranscript) {
-        onResult(interimTranscript, false);
+    } catch (e) {
+      if (!aborted) {
+        console.error("Voice recognition failed:", e);
       }
-    };
-
-    recognition.onerror = () => {
+    } finally {
       listening = false;
       onStateChange(false);
-    };
-
-    recognition.onend = () => {
-      listening = false;
-      onStateChange(false);
-    };
-
-    recognition.start();
-  }
-
-  function stop() {
-    if (recognition && listening) {
-      recognition.stop();
     }
   }
 
-  function isListening() {
+  function stop() {
+    aborted = true;
+    listening = false;
+    onStateChange(false);
+  }
+
+  function isListeningFn() {
     return listening;
   }
 
-  return { start, stop, isListening };
+  return { start: startNative, stop, isListening: isListeningFn };
 }

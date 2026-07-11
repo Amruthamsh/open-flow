@@ -18,6 +18,9 @@
     "sql:allow-execute",
     "sql:allow-select",
     "global-shortcut:allow-register",
-    "global-shortcut:allow-is-registered"
+    "global-shortcut:allow-is-registered",
+    "core:event:default",
+    "core:event:allow-listen",
+    "core:event:allow-emit"
   ]
 }

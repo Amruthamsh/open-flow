@@ -9,6 +9,15 @@ import type {
   ConnectivityStatus,
 } from "./types";
 
+// Voice
+export async function startVoiceRecognition(): Promise<{
+  transcript: string | null;
+  error: string | null;
+  confidence: number | null;
+}> {
+  return invoke("start_voice_recognition");
+}
+
 // Planner
 export async function generatePlan(
   command: string,

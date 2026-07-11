@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { LogicalPosition } from "@tauri-apps/api/dpi";
+import { listen } from "@tauri-apps/api/event";
 import { createVoiceRecognition } from "../lib/voice";
 
 interface CursorPos {
@@ -11,7 +12,7 @@ interface CursorPos {
 
 const POLL_INTERVAL_MS = 50;
 const WINDOW_SIZE = 56;
-const FOLLOW_SPEED = 0.03;
+const FOLLOW_SPEED = 0.12;
 
 export function Pet() {
   const [isHovered, setIsHovered] = useState(false);
@@ -45,6 +46,16 @@ export function Pet() {
   useEffect(() => {
     voiceRef.current = createVoiceRecognition(handleVoiceResult, handleVoiceState);
   }, [handleVoiceResult, handleVoiceState]);
+
+  // Listen for global shortcut voice trigger
+  useEffect(() => {
+    const unlisten = listen("trigger-voice", () => {
+      if (voiceRef.current && !isListening) {
+        voiceRef.current.start();
+      }
+    });
+    return () => { unlisten.then(fn => fn()); };
+  }, [isListening]);
 
   useEffect(() => {
     const appWindow = getCurrentWindow();
@@ -83,12 +94,7 @@ export function Pet() {
   }, []);
 
   const handleClick = async () => {
-    try {
-      await invoke("open_chat_window");
-    } catch {}
-  };
-
-  const handleDoubleClick = () => {
+    // Single click: start voice command
     if (voiceRef.current) {
       if (isListening) {
         voiceRef.current.stop();
@@ -96,6 +102,13 @@ export function Pet() {
         voiceRef.current.start();
       }
     }
+  };
+
+  const handleDoubleClick = async () => {
+    // Double click: open chat window for typing
+    try {
+      await invoke("open_chat_window");
+    } catch {}
   };
 
   const getState = () => {
