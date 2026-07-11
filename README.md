@@ -6,6 +6,8 @@ Think Antigravity or Claude for everyone, not just developers.
 
 This is a mobile and computer use agent that stays on your screen and supports you.
 
+## Gemma Model Fallback
+
 Today's assistants fail because they're cloud-first.
 If you're on 
 - a flight
